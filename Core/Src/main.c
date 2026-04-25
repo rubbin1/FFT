@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -72,7 +73,6 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -96,6 +96,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   float fft_freq = 0;
@@ -106,8 +107,7 @@ int main(void)
   //定义Input_Mode为单信号输入
   Input_Mode current_mode = SINGLE_WAVE_Input;
 
-  //先定义一个需要打印变量
-  int key_press_need_measure = 0;
+  HAL_TIM_Base_Start_IT(&htim2);
 
   /* USER CODE END 2 */
 
@@ -122,42 +122,33 @@ int main(void)
      *但是此时，每次在主循环中不断地跑模拟信号生成和计算，占用太多的时间了，导致按键堵塞了
      *所以此时我先选择每次生成模拟信号并打印一次，以后再改成按键可以触发中断，利用中断进行改变测量模式即可
      */
-    Key_Press(&key0, KEY0_Pin, KEY0_GPIO_Port);
     if (key0.short_pressed_flag)
     {
       key0.short_pressed_flag = 0;
 
-      key_press_need_measure = 1;
-
       if (current_mode == SINGLE_WAVE_Input)  current_mode = MULTI_WAVE_Input;
       else current_mode = SINGLE_WAVE_Input;
     }
-    if (key_press_need_measure)
+    switch (current_mode)
     {
-      switch (current_mode)
+    case SINGLE_WAVE_Input:
+      generate_sin_wave();
+      float probably_freq = zero_crossing();
+      if (probably_freq > 0)
       {
-      case SINGLE_WAVE_Input:
-        generate_sin_wave();
-        float probably_freq = zero_crossing();
-        if (probably_freq > 0)
-        {
-          precise_measure(probably_freq, &exact_freq, &exact_ampl);
-          printf("Freq_sin = %.4f Hz, Ampl_sin = %.4f\r\n", exact_freq, exact_ampl);
-        }
-        break;
-      case MULTI_WAVE_Input:
-        generate_square_wave();
-        fft_process(&fft_freq, &fft_ampl);
-        printf("Freq_fft = %.4f Hz, Ampl_fft = %.4f\r\n", fft_freq, fft_ampl);
-        break;
+        precise_measure(probably_freq, &exact_freq, &exact_ampl);
+        printf("Freq_sin = %.4f Hz, Ampl_sin = %.4f\r\n", exact_freq, exact_ampl);
       }
-
-      key_press_need_measure = 0;
+      break;
+    case MULTI_WAVE_Input:
+      generate_square_wave();
+      fft_process(&fft_freq, &fft_ampl);
+      printf("Freq_fft = %.4f Hz, Ampl_fft = %.4f\r\n", fft_freq, fft_ampl);
+      break;
     }
+    /* USER CODE END 3 */
   }
-  /* USER CODE END 3 */
 }
-
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -204,10 +195,19 @@ void SystemClock_Config(void)
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif
 
-PUTCHAR_PROTOTYPE {
+PUTCHAR_PROTOTYPE
+{
   HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
   return ch;
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM2)
+  {
+    Key_Press(&key0, KEY0_Pin, KEY0_GPIO_Port);
   }
+}
 /* USER CODE END 4 */
 
 /**

@@ -48,7 +48,7 @@ float zero_crossing()
 }
 
 //再进行三点DFT插值计算，
-void precise_measure(float proboly_freq, float *exact_freq, float *exact_ampl)
+void precise_measure(float proboly_freq, float *exact_freq_out, float *exact_ampl_out)
 {
     int N = ZERO_CROSSING_LEN;
     float fs = sample_rate;
@@ -110,7 +110,7 @@ void precise_measure(float proboly_freq, float *exact_freq, float *exact_ampl)
     float r = side_mag / main_mag;
     float delta = side_sign * r / (1.0f + r);
 
-    *exact_freq = (m + delta) * fs / N;
+    *exact_freq_out = (m + delta) * fs / N;
 
     // 5. 幅值恢复（sinc 修正）
     float sinc_val;
@@ -121,5 +121,5 @@ void precise_measure(float proboly_freq, float *exact_freq, float *exact_ampl)
         float x = M_PI * delta;
         sinc_val = sinf(x) / x;
     }
-    *exact_ampl = (2.0f * main_mag) / (N * sinc_val);
+    *exact_ampl_out = (2.0f * main_mag) / (N * sinc_val);
 }

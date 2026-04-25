@@ -42,7 +42,7 @@ void generate_square_wave()
     }
 }
 
-void fft_process()
+void fft_process(float *freq_out, float *ampl_out)
 {
      //1.FFT计算
      arm_cfft_f32(&scfft, Data_buffer, 0, 1);
@@ -65,8 +65,6 @@ void fft_process()
 
      float delta = 0.5f * (y1 - y3) / (y1 - 2.0f * y2 + y3);
 
-     FFT_freq = (max_pos + delta) * sample_rate / (float)FFT_LEN;
-     FFT_ampl = max_val;
-     printf("FFT_freq = %.4f\n", FFT_freq);
-     printf("FFT_ampl = %.4f\n", FFT_ampl);
+     *freq_out = (max_pos + delta) * sample_rate / (float)FFT_LEN;
+     *ampl_out = max_val;
 }

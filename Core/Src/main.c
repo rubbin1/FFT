@@ -97,22 +97,18 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  // generate_square_wave();
-  // fft_process();
-  generate_sin_wave();
-  float probably_freq = zero_crossing();
+
+  float fft_freq = 0;
+  float fft_ampl = 0;
+  float exact_freq = 0;
+  float exact_ampl = 0;
 
   //定义Input_Mode为单信号输入
   Input_Mode current_mode = SINGLE_WAVE_Input;
 
-  float exact_freq;
-  float exact_ampl;
-  precise_measure(probably_freq, &exact_freq, &exact_ampl);
-  if (probably_freq > 0)
-  {
-    precise_measure(probably_freq, &exact_freq, &exact_ampl);
-    printf("freq = %.4f Hz, Ampl = %.4f\r\n", exact_freq, exact_ampl);
-  }
+  //先定义一个需要打印变量
+  int key_press_need_measure = 0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -122,13 +118,41 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    //依旧是按键检测，短按key0切换输入模式
+    /*依旧是按键检测，短按key0切换输入模式
+     *但是此时，每次在主循环中不断地跑模拟信号生成和计算，占用太多的时间了，导致按键堵塞了
+     *所以此时我先选择每次生成模拟信号并打印一次，以后再改成按键可以触发中断，利用中断进行改变测量模式即可
+     */
     Key_Press(&key0, KEY0_Pin, KEY0_GPIO_Port);
     if (key0.short_pressed_flag)
     {
       key0.short_pressed_flag = 0;
+
+      key_press_need_measure = 1;
+
       if (current_mode == SINGLE_WAVE_Input)  current_mode = MULTI_WAVE_Input;
       else current_mode = SINGLE_WAVE_Input;
+    }
+    if (key_press_need_measure)
+    {
+      switch (current_mode)
+      {
+      case SINGLE_WAVE_Input:
+        generate_sin_wave();
+        float probably_freq = zero_crossing();
+        if (probably_freq > 0)
+        {
+          precise_measure(probably_freq, &exact_freq, &exact_ampl);
+          printf("Freq_sin = %.4f Hz, Ampl_sin = %.4f\r\n", exact_freq, exact_ampl);
+        }
+        break;
+      case MULTI_WAVE_Input:
+        generate_square_wave();
+        fft_process(&fft_freq, &fft_ampl);
+        printf("Freq_fft = %.4f Hz, Ampl_fft = %.4f\r\n", fft_freq, fft_ampl);
+        break;
+      }
+
+      key_press_need_measure = 0;
     }
   }
   /* USER CODE END 3 */

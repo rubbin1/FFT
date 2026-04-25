@@ -1,5 +1,5 @@
 //
-// Created by 35156 on 26-4-25.
+//本文件中函数用于进行fft算法
 //
 #include "fft.h"
 #include <stdio.h>
@@ -8,7 +8,8 @@
 #include "show_data.h"
 #include "window_table.h"
 
-float moni_freq = 1000.f;            //模拟信号频率
+float moni_freq_1 = 1000.f;            //模拟信号频率
+float moni_freq_2 = 92.f;
 float sample_rate = 10000.f;        //采样率
 float FFT_buffer[FFT_LEN * 2] = {0};//FFT函数输入输出数组
 
@@ -29,7 +30,7 @@ void generate_data()
     //1.对数据转成复数数组的同时，进行加汉宁窗
     for (int i = 0; i < FFT_LEN; i++)
     {
-        float val = sinf(2.0 * M_PI * moni_freq * i / sample_rate);
+        float val = sinf(2.0 * M_PI * moni_freq_1 * i / sample_rate);
         FFT_buffer[2 * i] = val * Hanning_Window[i];
         FFT_buffer[2 * i + 1] = 0;
     }

@@ -41,7 +41,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Src/show_data.c
         Core/Inc/show_data.h
         Core/Src/window_table.c
-        Core/Inc/window_table.h)
+        Core/Inc/window_table.h
+)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

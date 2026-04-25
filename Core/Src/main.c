@@ -23,12 +23,17 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "key_press.h"
 #include "fft.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef enum
+{
+  SINGLE_WAVE_Input,
+  MULTI_WAVE_Input
+}Input_Mode;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -91,7 +96,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   generate_data();
   fft_process();
-
+  //定义Input_Mode为单信号输入
+  Input_Mode current_mode = SINGLE_WAVE_Input;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -101,6 +107,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    //依旧是按键检测，短按key0切换输入模式
+    Key_Press(&key0, KEY0_Pin, KEY0_GPIO_Port);
+    if (key0.short_pressed_flag)
+    {
+      key0.short_pressed_flag = 0;
+      if (current_mode == SINGLE_WAVE_Input)  current_mode = MULTI_WAVE_Input;
+      else current_mode = SINGLE_WAVE_Input;
+    }
   }
   /* USER CODE END 3 */
 }

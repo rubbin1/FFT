@@ -23,8 +23,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+
 #include "key_press.h"
 #include "fft.h"
+#include "zero_crossing_and_dft.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -94,10 +97,22 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  generate_square_wave();
-  fft_process();
+  // generate_square_wave();
+  // fft_process();
+  generate_sin_wave();
+  float probably_freq = zero_crossing();
+
   //定义Input_Mode为单信号输入
   Input_Mode current_mode = SINGLE_WAVE_Input;
+
+  float exact_freq;
+  float exact_ampl;
+  precise_measure(probably_freq, &exact_freq, &exact_ampl);
+  if (probably_freq > 0)
+  {
+    precise_measure(probably_freq, &exact_freq, &exact_ampl);
+    printf("freq = %.4f Hz, Ampl = %.4f\r\n", exact_freq, exact_ampl);
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */

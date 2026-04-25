@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "fft.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -75,7 +75,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  FFT_Init();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -89,7 +89,8 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  generate_data();
+  fft_process();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -143,7 +144,16 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
 
+PUTCHAR_PROTOTYPE {
+  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return ch;
+  }
 /* USER CODE END 4 */
 
 /**

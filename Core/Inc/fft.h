@@ -5,10 +5,8 @@
 #ifndef FFT_H
 #define FFT_H
 
-#define FFT_LEN 1024
-
 void FFT_Init();
-void generate_data();
+void generate_square_wave();
 void fft_process();
 
 #endif //FFT_H

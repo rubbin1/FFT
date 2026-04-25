@@ -6,6 +6,6 @@
 #define WINDOW_TABLE_H
 
 #include "fft.h"
-extern const float Hanning_Window[FFT_LEN];
+extern const float FlapTop_Window[1024];
 
 #endif //WINDOW_TABLE_H

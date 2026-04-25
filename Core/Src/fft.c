@@ -8,8 +8,10 @@
 #include "show_data.h"
 #include "window_table.h"
 
-float moni_freq_1 = 1000.f;            //模拟信号频率
-float moni_freq_2 = 92.f;
+#define FFT_LEN 1024
+
+//模拟信号频率
+float moni_freq = 1000.f;
 float sample_rate = 10000.f;        //采样率
 float FFT_buffer[FFT_LEN * 2] = {0};//FFT函数输入输出数组
 
@@ -25,13 +27,14 @@ void FFT_Init()
     arm_cfft_init_f32(&scfft, FFT_LEN);
 }
 
-void generate_data()
+//模拟出一个方波
+void generate_square_wave()
 {
-    //1.对数据转成复数数组的同时，进行加汉宁窗
     for (int i = 0; i < FFT_LEN; i++)
     {
-        float val = sinf(2.0 * M_PI * moni_freq_1 * i / sample_rate);
-        FFT_buffer[2 * i] = val * Hanning_Window[i];
+        float phase = 2.0f * M_PI * moni_freq * i / sample_rate;
+        float val = (sinf(phase) >= 0) ? 1.0f : -1.0f;   // 幅值 ±1
+        FFT_buffer[2 * i]     = val * FlapTop_Window[i];  // 加窗（可选）
         FFT_buffer[2 * i + 1] = 0;
     }
 }
@@ -45,7 +48,7 @@ void fft_process()
      //3.幅值校准
      for (int i = 0; i < FFT_LEN / 2; i++)
      {
-         FFT_buffer[i] = FFT_buffer[i] * 4.0f / (float)FFT_LEN;
+         FFT_buffer[i] = FFT_buffer[i] * 2.0f / (FFT_LEN * 0.26526f);
      }
      //4.搜索峰值
      float max_val;
@@ -60,7 +63,7 @@ void fft_process()
      float delta = 0.5f * (y1 - y3) / (y1 - 2.0f * y2 + y3);
 
      FFT_freq = (max_pos + delta) * sample_rate / (float)FFT_LEN;
-     FFT_ampl = y2 - 0.25f * (y1 - y3) * delta;
+     FFT_ampl = max_val;
      printf("FFT_freq = %.4f\n", FFT_freq);
      printf("FFT_ampl = %.4f\n", FFT_ampl);
 }

@@ -94,7 +94,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  generate_data();
+  generate_square_wave();
   fft_process();
   //定义Input_Mode为单信号输入
   Input_Mode current_mode = SINGLE_WAVE_Input;

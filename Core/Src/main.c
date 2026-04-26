@@ -35,12 +35,19 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+//输入模式
 typedef enum
 {
   SINGLE_WAVE_Input,
-  MULTI_WAVE_Input
+  MULTI_WAVE_Input,
 }Input_Mode;
 
+//是否进行图像显示
+typedef enum
+{
+  IMAGE_MODE_ON,
+  IMAGE_MODE_OFF,
+}IMAGE_MOD;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -110,8 +117,9 @@ int main(void)
   float exact_freq = 0;
   float exact_ampl = 0;
 
-  //定义Input_Mode为单信号输入
+  //定义Input_Mode为单信号输入，图像模式同理
   Input_Mode current_mode = SINGLE_WAVE_Input;
+  IMAGE_MOD current_imaging_mode = IMAGE_MODE_OFF;
 
   //定义一个用于控制非正弦输入时，OLED屏幕页数的变量
   int pages = 0;
@@ -124,9 +132,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    /*依旧是按键检测，短按key0切换输入模式
-     *但是此时，每次在主循环中不断地跑模拟信号生成和计算，占用太多的时间了，导致按键堵塞了
-     *所以此时我先选择每次生成模拟信号并打印一次，以后再改成按键可以触发中断，利用中断进行改变测量模式即可
+    /*依旧是按键检测
+     *key0: 切换输入模式
      */
     if (key0.short_pressed_flag)
     {
@@ -141,11 +148,18 @@ int main(void)
 
       pages = (pages + 1) % 5;
     }
+    if (key2.short_pressed_flag)
+    {
+      key2.short_pressed_flag = 0;
+
+      if (current_imaging_mode == IMAGE_MODE_OFF)   current_imaging_mode = IMAGE_MODE_ON;
+      else current_imaging_mode = IMAGE_MODE_OFF;
+    }
     switch (current_mode)
     {
     case SINGLE_WAVE_Input:
       generate_sin_wave();
-      float probably_freq = zero_crossing();
+      float probably_freq = zero_crossing_raw(Data_buffer, 1024, 10000.f);
       if (probably_freq > 0)
       {
         precise_measure(probably_freq, &exact_freq, &exact_ampl);
@@ -154,9 +168,13 @@ int main(void)
       break;
     case MULTI_WAVE_Input:
       generate_square_wave();
+      capture_waveform();
       float freqs[5], ampls[5];
       fft_process_harmonics(freqs, ampls);
-      OLED_Show_mul_input(freqs, ampls, pages);
+      if (current_imaging_mode == IMAGE_MODE_ON)
+        OLED_Show_Image();
+      else
+        OLED_Show_mul_input(freqs, ampls, pages);
       break;
     }
     /* USER CODE END 3 */
@@ -220,6 +238,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
     Key_Press(&key0, KEY0_Pin, KEY0_GPIO_Port);
     Key_Press(&key1, KEY1_Pin, KEY1_GPIO_Port);
+    Key_Press(&key2, KEY2_Pin, KEY2_GPIO_Port);
   }
 }
 /* USER CODE END 4 */

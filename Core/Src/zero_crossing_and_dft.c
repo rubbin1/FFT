@@ -8,10 +8,10 @@
 #include <math.h>
 #include <stdio.h>
 
-#define ZERO_CROSSING_LEN 2048        //定义过零检测采样数为1024
+#define ZERO_CROSSING_LEN 1024        //定义过零检测采样数为1024
 
-float moni_freq_sin = 99.f;
-float sample_rate_sin = 1000.f;        //采样率
+float moni_freq_sin = 1000.f;
+float sample_rate_sin = 10000.f;        //采样率
 extern float Data_buffer[ZERO_CROSSING_LEN * 2];
 
 void generate_sin_wave()
@@ -23,28 +23,21 @@ void generate_sin_wave()
 }
 
 //先进行过零检测，算出大概的频率
-float zero_crossing()
+float zero_crossing_raw(const float *samples, int len, float fs)
 {
     int zero_cross_count = 0;
     float first_cross_time = 0.0f, last_cross_time = 0.0f;
-
-    for (int i = 1; i < ZERO_CROSSING_LEN; i++)
-    {
-        if (Data_buffer[i - 1] < 0 && Data_buffer[i] >= 0)
-        {
-            float frac = -Data_buffer[i-1] / (Data_buffer[i] - Data_buffer[i-1]);
-            float cross_time = (i-1 + frac) / sample_rate_sin;
-            if (zero_cross_count == 0)
-            {
-                first_cross_time = cross_time;
-            }
+    for (int i = 1; i < len; i++) {
+        if (samples[i-1] < 0 && samples[i] >= 0) {
+            float frac = -samples[i-1] / (samples[i] - samples[i-1]);
+            float cross_time = (i-1 + frac) / fs;
+            if (zero_cross_count == 0) first_cross_time = cross_time;
             last_cross_time = cross_time;
             zero_cross_count++;
         }
     }
     if (zero_cross_count < 2) return 0;
-    float proboly_freq = (zero_cross_count - 1) / (last_cross_time - first_cross_time);
-    return proboly_freq;
+    return (zero_cross_count - 1) / (last_cross_time - first_cross_time);
 }
 
 //再进行三点DFT插值计算，

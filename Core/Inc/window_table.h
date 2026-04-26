@@ -5,6 +5,6 @@
 #ifndef WINDOW_TABLE_H
 #define WINDOW_TABLE_H
 
-extern const float FlatTop_Window[2048];
+extern const float FlatTop_Window[1024];
 
 #endif //WINDOW_TABLE_H

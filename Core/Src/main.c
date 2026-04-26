@@ -124,18 +124,6 @@ int main(void)
     /*依旧是按键检测
      *key0: 切换输入模式
      */
-    if (key0.short_pressed_flag)
-    {
-      key0.short_pressed_flag = 0;
-
-      if (current_mode == SINGLE_WAVE_Input)
-      {
-        //进入非正弦输入时，每次都要回到基波界面
-        pages = 0;
-        current_mode = MULTI_WAVE_Input;
-      }
-      else current_mode = SINGLE_WAVE_Input;
-    }
     if (key1.short_pressed_flag)
     {
       key1.short_pressed_flag = 0;
@@ -152,6 +140,19 @@ int main(void)
         if (current_imaging_mode == IMAGE_MODE_OFF)   current_imaging_mode = IMAGE_MODE_ON;
         else current_imaging_mode = IMAGE_MODE_OFF;
       }
+    }
+    if (key0.short_pressed_flag)
+    {
+      key0.short_pressed_flag = 0;
+
+      if (current_mode == SINGLE_WAVE_Input)
+      {
+        //进入非正弦输入时，每次都要回到基波界面
+        pages = 0;
+        current_mode = MULTI_WAVE_Input;
+        current_imaging_mode = IMAGE_MODE_OFF;
+      }
+      else current_mode = SINGLE_WAVE_Input;
     }
     switch (current_mode)
     {

@@ -36,7 +36,7 @@ void OLED_Show_mul_input(float *freqs, float *ampls, int pages)
     int ampl_int = (int)(ampls[pages] * 10000);
     if (pages > 0 && ampl_base_int > 0)
     {
-        int H_i = (ampl_int * 100 / ampl_base_int) * 10;
+        int H_i = ampl_int * 100 * 10 / ampl_base_int;
         sprintf(display_char_3, "Hi(%d)=%d.%01d%%", pages + 1, H_i/10, H_i%10);
     }
     //显示波的频率和幅值

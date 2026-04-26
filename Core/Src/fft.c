@@ -13,7 +13,7 @@
 #define WAVE_DISP_MAX 150
 
 //模拟信号频率
-float moni_freq = 200.f;
+float moni_freq_1 = 60.f;
 float sample_rate = 10000.f;        //采样率
 float Data_buffer[FFT_LEN * 2] = {0};
 /*若为纯正弦输入时，Data_buffer为数据采样序列
@@ -43,8 +43,9 @@ void generate_square_wave()
 {
     for (int i = 0; i < FFT_LEN; i++)
     {
-        float phase = 2.0f * M_PI * moni_freq * i / sample_rate;
-        float val = (sinf(phase) >= 0) ? 1.0f : -1.0f;
+        float val = sinf(2.0 * M_PI * moni_freq_1 * i / sample_rate)
+                    +(1.0/3.0) * sinf(3.0 * 2.0 * M_PI * moni_freq_1 * i / sample_rate)
+                    +(1.0/5.0) * sinf(5.0 * 2.0 * M_PI * moni_freq_1 * i / sample_rate);
         Wave_Buffer[i] = val;
         Data_buffer[ 2 * i] = val;
         Data_buffer[ 2 * i + 1] = 0;

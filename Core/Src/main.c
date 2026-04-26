@@ -1,18 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
+  * 自233-尹鸿宇-U202342240
   ******************************************************************************
   */
 /* USER CODE END Header */
@@ -168,11 +157,10 @@ int main(void)
       break;
     case MULTI_WAVE_Input:
       generate_square_wave();
-      capture_waveform();
       float freqs[5], ampls[5];
       fft_process_harmonics(freqs, ampls);
       if (current_imaging_mode == IMAGE_MODE_ON)
-        OLED_Show_Image();
+        OLED_Show_Image(freqs[0]);
       else
         OLED_Show_mul_input(freqs, ampls, pages);
       break;

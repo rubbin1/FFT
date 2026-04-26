@@ -10,7 +10,6 @@
 #include "zero_crossing_and_dft.h"
 
 #define FFT_LEN 1024
-#define WAVE_DISP_MAX 150
 
 //模拟信号频率
 float moni_freq_1 = 60.f;
@@ -27,9 +26,6 @@ float FFT_ampl = 0;
 
 //图像绘制前，把1024个实数采样点存入如下数组中
 float Wave_Buffer[FFT_LEN] = {0};
-//图像绘制时所用的采样点数组
-float Wave_Disp[WAVE_DISP_MAX];
-int wave_len = 0;
 
 arm_cfft_instance_f32 scfft;
 
@@ -50,27 +46,6 @@ void generate_square_wave()
         Data_buffer[ 2 * i] = val;
         Data_buffer[ 2 * i + 1] = 0;
     }
-}
-
-//利用过零检测，保存一个周期波形
-void capture_waveform()
-{
-    // 1. 先从 Data_buffer 的实部拷贝原始采样数据（2048 个 float）
-    //    过零检测需要这段数据
-    float prob_freq = zero_crossing_raw(Wave_Buffer, FFT_LEN, sample_rate);
-    if (prob_freq < 50.0f) prob_freq = 50.0f;   // 限制范围
-    if (prob_freq > 200.0f) prob_freq = 200.0f;
-
-    int N_cycle = (int)(sample_rate / prob_freq + 0.5f);
-    if (N_cycle > WAVE_DISP_MAX) N_cycle = WAVE_DISP_MAX;
-    if (N_cycle > FFT_LEN) N_cycle = FFT_LEN;
-
-    // 2. 拷贝一个周期的数据到 Wave_Disp（只取实部，因 Data_buffer[0], [2], [4]... 是实部）
-    for (int i = 0; i < N_cycle; i++)
-    {
-        Wave_Disp[i] = Data_buffer[2 * i];   // 实部
-    }
-    wave_len = N_cycle;
 }
 
 void fft_process_harmonics(float *freqs, float *ampls)

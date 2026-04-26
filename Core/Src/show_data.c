@@ -67,27 +67,33 @@ void OLED_Show_mul_input(float *freqs, float *ampls, int pages)
 }
 
 //在非正弦输入模式下，对信号波形图进行绘制
-void OLED_Show_Image()
-{
-    extern float Wave_Disp[];
-    extern uint16_t wave_len;
+extern float Wave_Buffer[];   // 1024点原始实数波形
+extern float sample_rate;     // 采样率
 
+void OLED_Show_Image(float f0)
+{
     const int SCREEN_W = 128;
     const int SCREEN_H = 64;
     int y_center = SCREEN_H / 2;
     float y_scale = 28.0f;
 
+    //一个周期的采样点数
+    float period_samples = sample_rate / f0;
+
     OLED_NewFrame();
     int prev_x = 0, prev_y = y_center;
-    for (int col = 0; col < SCREEN_W; col++) {
-        float idx_f = (float)col / SCREEN_W * wave_len;
+    for (int col = 0; col < SCREEN_W; col++)
+    {
+        //将 0~SCREEN_W映射到0~period_samples（一个完整周期）
+        float idx_f = (float)col / SCREEN_W * period_samples;
         int idx = (int)idx_f;
         float frac = idx_f - idx;
+
         float val;
-        if (idx + 1 < wave_len)
-            val = Wave_Disp[idx] * (1.0f - frac) + Wave_Disp[idx + 1] * frac;
+        if (idx + 1 < 1024)   // Wave_Buffer 长度为1024
+            val = Wave_Buffer[idx] * (1.0f - frac) + Wave_Buffer[idx + 1] * frac;
         else
-            val = Wave_Disp[idx];
+            val = Wave_Buffer[idx];
 
         int y = y_center - (int)(val * y_scale);
         int x = col;

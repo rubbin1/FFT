@@ -317,7 +317,8 @@ void OLED_SetBlock(uint8_t x, uint8_t y, const uint8_t *data, uint8_t w, uint8_t
  * @param color 颜色
  * @note 此函数使用Bresenham算法绘制线段
  */
-void OLED_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, OLED_ColorMode color) {
+void OLED_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, OLED_ColorMode color)
+{
   static uint8_t temp = 0;
   if (x1 == x2) {
     if (y1 > y2) {

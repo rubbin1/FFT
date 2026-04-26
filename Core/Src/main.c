@@ -128,21 +128,30 @@ int main(void)
     {
       key0.short_pressed_flag = 0;
 
-      if (current_mode == SINGLE_WAVE_Input)  current_mode = MULTI_WAVE_Input;
+      if (current_mode == SINGLE_WAVE_Input)
+      {
+        //进入非正弦输入时，每次都要回到基波界面
+        pages = 0;
+        current_mode = MULTI_WAVE_Input;
+      }
       else current_mode = SINGLE_WAVE_Input;
     }
     if (key1.short_pressed_flag)
     {
       key1.short_pressed_flag = 0;
-
-      pages = (pages + 1) % 5;
+      if (current_mode == MULTI_WAVE_Input && current_imaging_mode == IMAGE_MODE_OFF)
+      {
+        pages = (pages + 1) % 5;
+      }
     }
     if (key2.short_pressed_flag)
     {
       key2.short_pressed_flag = 0;
-
-      if (current_imaging_mode == IMAGE_MODE_OFF)   current_imaging_mode = IMAGE_MODE_ON;
-      else current_imaging_mode = IMAGE_MODE_OFF;
+      if (current_mode == MULTI_WAVE_Input)
+      {
+        if (current_imaging_mode == IMAGE_MODE_OFF)   current_imaging_mode = IMAGE_MODE_ON;
+        else current_imaging_mode = IMAGE_MODE_OFF;
+      }
     }
     switch (current_mode)
     {

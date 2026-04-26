@@ -45,6 +45,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Src/zero_crossing_and_dft.c
         Core/Inc/zero_crossing_and_dft.h
         Core/Src/key_press.c
+        Core/Src/oled.c
+        Core/Src/font.c
 )
 
 # Add STM32CubeMX generated sources

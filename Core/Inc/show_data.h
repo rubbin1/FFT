@@ -7,5 +7,7 @@
 #include <stdint.h>
 
 void show_data(float *buffer, uint16_t size);
+void OLED_Show_sin_input(float freq, float ampl);
+void OLED_Show_mul_input();
 
 #endif //SHOW_DATA_H

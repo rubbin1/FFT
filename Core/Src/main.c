@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -25,9 +26,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-
 #include "key_press.h"
 #include "fft.h"
+#include "oled.h"
+#include "show_data.h"
 #include "zero_crossing_and_dft.h"
 /* USER CODE END Includes */
 
@@ -97,6 +99,9 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
+  MX_I2C1_Init();
+  HAL_Delay(20);
+  OLED_Init();
   /* USER CODE BEGIN 2 */
 
   float fft_freq = 0;
@@ -137,13 +142,13 @@ int main(void)
       if (probably_freq > 0)
       {
         precise_measure(probably_freq, &exact_freq, &exact_ampl);
-        printf("Freq_sin = %.4f Hz, Ampl_sin = %.4f\r\n", exact_freq, exact_ampl);
+        OLED_Show_sin_input(exact_freq , exact_ampl);
       }
       break;
     case MULTI_WAVE_Input:
       generate_square_wave();
       fft_process(&fft_freq, &fft_ampl);
-      printf("Freq_fft = %.4f Hz, Ampl_fft = %.4f\r\n", fft_freq, fft_ampl);
+      OLED_Show_mul_input();
       break;
     }
     /* USER CODE END 3 */

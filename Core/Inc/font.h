@@ -8,11 +8,9 @@ typedef struct ASCIIFont {
   uint8_t *chars;
 } ASCIIFont;
 
-extern const ASCIIFont afont8x6;
 extern const ASCIIFont afont12x6;
-extern const ASCIIFont afont16x8;
-extern const ASCIIFont afont24x12;
 
+extern const ASCIIFont afont16x8;
 /**
  * @brief 字体结构体
  * @note  字库前4字节存储utf8编码 剩余字节存储字模数据
@@ -26,7 +24,7 @@ typedef struct Font {
   const ASCIIFont *ascii; // 缺省ASCII字体 当字库中没有对应字符且需要显示ASCII字符时使用
 } Font;
 
-extern const Font font16x16;
+extern const Font font12x12;
 
 /**
  * @brief 图片结构体

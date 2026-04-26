@@ -40,6 +40,7 @@ typedef enum
   SINGLE_WAVE_Input,
   MULTI_WAVE_Input
 }Input_Mode;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -100,20 +101,20 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM2_Init();
   MX_I2C1_Init();
+  /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start_IT(&htim2);
   HAL_Delay(20);
   OLED_Init();
-  /* USER CODE BEGIN 2 */
 
-  float fft_freq = 0;
-  float fft_ampl = 0;
+  //非正弦输入的频率和幅值和正弦输入的频率和幅值
   float exact_freq = 0;
   float exact_ampl = 0;
 
   //定义Input_Mode为单信号输入
   Input_Mode current_mode = SINGLE_WAVE_Input;
 
-  HAL_TIM_Base_Start_IT(&htim2);
-
+  //定义一个用于控制非正弦输入时，OLED屏幕页数的变量
+  int pages = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -134,6 +135,12 @@ int main(void)
       if (current_mode == SINGLE_WAVE_Input)  current_mode = MULTI_WAVE_Input;
       else current_mode = SINGLE_WAVE_Input;
     }
+    if (key1.short_pressed_flag)
+    {
+      key1.short_pressed_flag = 0;
+
+      pages = (pages + 1) % 5;
+    }
     switch (current_mode)
     {
     case SINGLE_WAVE_Input:
@@ -147,8 +154,9 @@ int main(void)
       break;
     case MULTI_WAVE_Input:
       generate_square_wave();
-      fft_process(&fft_freq, &fft_ampl);
-      OLED_Show_mul_input();
+      float freqs[5], ampls[5];
+      fft_process_harmonics(freqs, ampls);
+      OLED_Show_mul_input(freqs, ampls, pages);
       break;
     }
     /* USER CODE END 3 */
@@ -211,6 +219,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM2)
   {
     Key_Press(&key0, KEY0_Pin, KEY0_GPIO_Port);
+    Key_Press(&key1, KEY1_Pin, KEY1_GPIO_Port);
   }
 }
 /* USER CODE END 4 */

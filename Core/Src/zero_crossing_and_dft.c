@@ -8,17 +8,17 @@
 #include <math.h>
 #include <stdio.h>
 
-#define ZERO_CROSSING_LEN 1024          //定义过零检测采样数为1024
+#define ZERO_CROSSING_LEN 2048        //定义过零检测采样数为1024
 
 float moni_freq_sin = 99.f;
-extern float sample_rate;        //采样率
+float sample_rate_sin = 1000.f;        //采样率
 extern float Data_buffer[ZERO_CROSSING_LEN * 2];
 
 void generate_sin_wave()
 {
     for (int i = 0; i < ZERO_CROSSING_LEN; i++)
     {
-        Data_buffer[i] = 0.33 * sinf(2.0 * M_PI * moni_freq_sin * i / sample_rate);
+        Data_buffer[i] = 0.33 * sinf(2.0 * M_PI * moni_freq_sin * i / sample_rate_sin);
     }
 }
 
@@ -33,7 +33,7 @@ float zero_crossing()
         if (Data_buffer[i - 1] < 0 && Data_buffer[i] >= 0)
         {
             float frac = -Data_buffer[i-1] / (Data_buffer[i] - Data_buffer[i-1]);
-            float cross_time = (i-1 + frac) / sample_rate;
+            float cross_time = (i-1 + frac) / sample_rate_sin;
             if (zero_cross_count == 0)
             {
                 first_cross_time = cross_time;
@@ -51,7 +51,7 @@ float zero_crossing()
 void precise_measure(float proboly_freq, float *exact_freq_out, float *exact_ampl_out)
 {
     int N = ZERO_CROSSING_LEN;
-    float fs = sample_rate;
+    float fs = sample_rate_sin;
 
     // 1. 粗频 → 浮点索引 → 取基准 k0
     float k_float = proboly_freq * N / fs;

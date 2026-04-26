@@ -7,6 +7,6 @@
 
 void FFT_Init();
 void generate_square_wave();
-void fft_process(float *freq_out, float *ampl_out);
+void fft_process_harmonics(float *freqs, float *ampls);
 
 #endif //FFT_H

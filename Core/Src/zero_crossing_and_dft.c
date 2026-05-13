@@ -10,15 +10,15 @@
 
 #define ZERO_CROSSING_LEN 1024        //定义过零检测采样数为1024
 
-float moni_freq_sin = 1000.f;
 float sample_rate_sin = 10000.f;        //采样率
 extern float Data_buffer[ZERO_CROSSING_LEN * 2];
 
-void generate_sin_wave()
+//将Data_buffer数组写为下面可以接受的样子
+void Data_buffer_sin(float *buf)
 {
-    for (int i = 0; i < ZERO_CROSSING_LEN; i++)
+    for(int i = 0; i < ZERO_CROSSING_LEN; i++)
     {
-        Data_buffer[i] = 0.33 * sinf(2.0 * M_PI * moni_freq_sin * i / sample_rate_sin);
+        Data_buffer[i] = buf[i + ZERO_CROSSING_LEN];
     }
 }
 

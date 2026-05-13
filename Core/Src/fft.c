@@ -10,7 +10,6 @@
 #include "zero_crossing_and_dft.h"
 
 #define FFT_LEN 1024
-
 //模拟信号频率
 float moni_freq_1 = 60.f;
 float sample_rate = 10000.f;        //采样率
@@ -34,17 +33,12 @@ void FFT_Init()
     arm_cfft_init_f32(&scfft, FFT_LEN);
 }
 
-//模拟出一个方波，并且传入Data_buffer数组
-void generate_square_wave()
+void Data_buffer_nosin(float *buf)
 {
     for (int i = 0; i < FFT_LEN; i++)
     {
-        float val = sinf(2.0 * M_PI * moni_freq_1 * i / sample_rate)
-                    +(1.0/3.0) * sinf(3.0 * 2.0 * M_PI * moni_freq_1 * i / sample_rate)
-                    +(1.0/5.0) * sinf(5.0 * 2.0 * M_PI * moni_freq_1 * i / sample_rate);
-        Wave_Buffer[i] = val;
-        Data_buffer[ 2 * i] = val;
-        Data_buffer[ 2 * i + 1] = 0;
+        Data_buffer[2 * i] = buf[FFT_LEN + i];
+        Data_buffer[2 * i + 1] = 0;
     }
 }
 

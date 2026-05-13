@@ -108,3 +108,11 @@
 /target-FFT-Debug-5e1bf74b72bbec167cdb.json
 /target-STM32_Drivers-Debug-35e0fbcf0dc0dece3a51.json
 /cmake-build-debug-stm32/.cmake/api/v1/reply
+/cmake
+/cmake-build-debug-stm32/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc.c.obj
+/cmake-build-debug-stm32/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc_ex.c.obj
+/cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/adc.c.obj
+/cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/dma.c.obj
+/cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/voltage_in.c.obj
+/.idea/.name
+/.idea/FFT_moni.iml

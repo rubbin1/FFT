@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "oled.h"
+#include "main.h"
 
 char display_char_1[24] = {0};
 char display_char_2[24] = {0};
@@ -67,13 +68,17 @@ void OLED_Show_mul_input(float *freqs, float *ampls, int pages)
 }
 
 //在非正弦输入模式下，对信号波形图进行绘制
-extern float Wave_Buffer[];   // 1024点原始实数波形
 extern float sample_rate;     // 采样率
 
-void OLED_Show_Image(float f0)
+void OLED_Show_Image(uint16_t *adc_data, float f0)
 {
     const int SCREEN_W = 128;
     const int SCREEN_H = 64;
+    static float wave[1024];  // 静态区，不占栈
+
+    for (int i = 0; i < 1024; i++)
+        wave[i] = adc_data[i] * 3.3f / 4096.0f - 1.65f;  // 去直流
+
     int y_center = SCREEN_H / 2;
     float y_scale = 28.0f;
 
@@ -91,9 +96,9 @@ void OLED_Show_Image(float f0)
 
         float val;
         if (idx + 1 < 1024)   // Wave_Buffer 长度为1024
-            val = Wave_Buffer[idx] * (1.0f - frac) + Wave_Buffer[idx + 1] * frac;
+            val = wave[idx] * (1.0f - frac) + wave[idx + 1] * frac;
         else
-            val = Wave_Buffer[idx];
+            val = wave[idx];
 
         int y = y_center - (int)(val * y_scale);
         int x = col;

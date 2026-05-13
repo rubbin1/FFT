@@ -6,9 +6,10 @@
 #define FFT_H
 
 void FFT_Init();
-void generate_square_wave();
+void Data_buffer_nosin(float *buf);
 void fft_process_harmonics(float *freqs, float *ampls);
 
 extern float Data_buffer[];
+// Wave data now read from Data_buffer's real parts (Data_buffer[2*i])
 
 #endif //FFT_H

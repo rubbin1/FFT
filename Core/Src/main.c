@@ -7,6 +7,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
+#include "dma.h"
 #include "i2c.h"
 #include "tim.h"
 #include "usart.h"
@@ -41,7 +43,8 @@ typedef enum
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define FFT_LEN 1024
+#define ADC_BUFFER_SIZE 1024
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,7 +55,14 @@ typedef enum
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint16_t adc_raw[ADC_BUFFER_SIZE];   // DMA 循环写入的原始 ADC 值
 
+// 你的旧 Data_buffer 是 2048 长度（实部+虚部），保留它
+extern float Data_buffer[2048];      // 确保这个定义与你原有代码一致
+
+volatile uint8_t adc_data_ready = 0; // 标志：1024点采集完成
+
+uint16_t adc_snapshot[ADC_BUFFER_SIZE];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -94,10 +104,19 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
   MX_I2C1_Init();
+  MX_ADC1_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+  HAL_ADCEx_Calibration_Start(&hadc1);
+
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_raw, ADC_BUFFER_SIZE);
+
+  HAL_TIM_Base_Start(&htim3);
+
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_Delay(20);
   OLED_Init();
@@ -154,26 +173,37 @@ int main(void)
       }
       else current_mode = SINGLE_WAVE_Input;
     }
-    switch (current_mode)
+    if (adc_data_ready)
     {
-    case SINGLE_WAVE_Input:
-      generate_sin_wave();
-      float probably_freq = zero_crossing_raw(Data_buffer, 1024, 10000.f);
-      if (probably_freq > 0)
+      adc_data_ready = 0;
+
+      for (int i = 0; i < ADC_BUFFER_SIZE; i++)
       {
-        precise_measure(probably_freq, &exact_freq, &exact_ampl);
-        OLED_Show_sin_input(exact_freq , exact_ampl);
+        //把Data_buffer数组后半部分装数
+        Data_buffer[ADC_BUFFER_SIZE + i] = adc_snapshot[i] * 3.3f / 4096.0f;
+
       }
-      break;
-    case MULTI_WAVE_Input:
-      generate_square_wave();
-      float freqs[5], ampls[5];
-      fft_process_harmonics(freqs, ampls);
-      if (current_imaging_mode == IMAGE_MODE_ON)
-        OLED_Show_Image(freqs[0]);
-      else
-        OLED_Show_mul_input(freqs, ampls, pages);
-      break;
+      switch (current_mode)
+      {
+      case SINGLE_WAVE_Input:
+        Data_buffer_sin(Data_buffer);
+        float probably_freq = zero_crossing_raw(Data_buffer, 1024, 10000.f);
+        if (probably_freq > 0)
+        {
+          precise_measure(probably_freq, &exact_freq, &exact_ampl);
+          OLED_Show_sin_input(exact_freq , exact_ampl);
+        }
+        break;
+      case MULTI_WAVE_Input:
+        Data_buffer_nosin(Data_buffer);
+        float freqs[5], ampls[5];
+        fft_process_harmonics(freqs, ampls);
+        if (current_imaging_mode == IMAGE_MODE_ON)
+          OLED_Show_Image(adc_snapshot ,freqs[0]);
+        else
+          OLED_Show_mul_input(freqs, ampls, pages);
+        break;
+      }
     }
     /* USER CODE END 3 */
   }
@@ -186,6 +216,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -215,6 +246,12 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
@@ -237,6 +274,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     Key_Press(&key0, KEY0_Pin, KEY0_GPIO_Port);
     Key_Press(&key1, KEY1_Pin, KEY1_GPIO_Port);
     Key_Press(&key2, KEY2_Pin, KEY2_GPIO_Port);
+  }
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+  if (hadc->Instance == ADC1) {
+    // 快速复制原始 ADC 数据（uint16_t 复制极快，<100us）
+    memcpy(adc_snapshot, adc_raw, sizeof(adc_snapshot));
+    adc_data_ready = 1;
   }
 }
 /* USER CODE END 4 */

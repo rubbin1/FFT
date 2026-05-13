@@ -5,7 +5,7 @@
 #ifndef ZERO_CROSSING_AND_DFT_H
 #define ZERO_CROSSING_AND_DFT_H
 
-void generate_sin_wave();
+void Data_buffer_sin(float *buf);
 float zero_crossing_raw(const float *samples, int len, float fs);
 void precise_measure(float proboly_freq, float *exact_freq_out, float *exact_ampl_out);
 

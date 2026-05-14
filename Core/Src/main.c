@@ -45,12 +45,6 @@
 
 /* USER CODE BEGIN PV */
 
-//定义Input_Mode为单信号输入，图像模式同理
-Input_Mode current_mode = SINGLE_WAVE_Input;
-IMAGE_MOD current_imaging_mode = IMAGE_MODE_OFF;
-
-//定义一个用于控制非正弦输入时，OLED屏幕页数的变量
-int pages = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -129,32 +123,32 @@ int main(void)
     if (key1.short_pressed_flag)
     {
       key1.short_pressed_flag = 0;
-      if (current_mode == MULTI_WAVE_Input && current_imaging_mode == IMAGE_MODE_OFF)
+      if (display_state.mode == MULTI_WAVE_Input && display_state.imageMod == IMAGE_MODE_OFF)
       {
-        pages = (pages + 1) % 5;
+        display_state.harmonic_pages = (display_state.harmonic_pages + 1) % 5;
       }
     }
     if (key2.short_pressed_flag)
     {
       key2.short_pressed_flag = 0;
-      if (current_mode == MULTI_WAVE_Input)
+      if (display_state.mode == MULTI_WAVE_Input)
       {
-        if (current_imaging_mode == IMAGE_MODE_OFF)   current_imaging_mode = IMAGE_MODE_ON;
-        else current_imaging_mode = IMAGE_MODE_OFF;
+        if (display_state.imageMod == IMAGE_MODE_OFF)   display_state.imageMod = IMAGE_MODE_ON;
+        else display_state.imageMod = IMAGE_MODE_OFF;
       }
     }
     if (key0.short_pressed_flag)
     {
       key0.short_pressed_flag = 0;
 
-      if (current_mode == SINGLE_WAVE_Input)
+      if (display_state.mode == SINGLE_WAVE_Input)
       {
         //进入非正弦输入时，每次都要回到基波界面
-        pages = 0;
-        current_mode = MULTI_WAVE_Input;
-        current_imaging_mode = IMAGE_MODE_OFF;
+        display_state.harmonic_pages = 0;
+        display_state.mode = MULTI_WAVE_Input;
+        display_state.imageMod = IMAGE_MODE_OFF;
       }
-      else current_mode = SINGLE_WAVE_Input;
+      else display_state.mode = SINGLE_WAVE_Input;
     }
 
     if (adcbuf_flag.data_ready)
@@ -177,7 +171,7 @@ int main(void)
         Data_buffer[system_config.adc_buffer_size + i] -= avg;
       }
 
-      switch (current_mode)
+      switch (display_state.mode)
       {
       case SINGLE_WAVE_Input:
         Data_buffer_sin(Data_buffer);
@@ -191,7 +185,7 @@ int main(void)
       case MULTI_WAVE_Input:
         Data_buffer_nosin(Data_buffer);
         fft_process_harmonics();
-        if (current_imaging_mode == IMAGE_MODE_ON)
+        if (display_state.imageMod == IMAGE_MODE_ON)
         {
           if (harmonicsResult.fundamental.frequency <= 0)  break;
           OLED_Show_Image(adcbuf_flag.snapshot, harmonicsResult.fundamental.frequency);
@@ -214,7 +208,7 @@ int main(void)
             harmonicsResult.harmonics[2].amplitude,
             harmonicsResult.harmonics[3].amplitude
           };
-          OLED_Show_mul_input(freqs, ampls, pages);
+          OLED_Show_mul_input(freqs, ampls, display_state.harmonic_pages);
         }
         break;
       }
@@ -286,9 +280,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim->Instance == TIM2)
   {
-    Key_Press(&key0, KEY0_Pin, KEY0_GPIO_Port);
-    Key_Press(&key1, KEY1_Pin, KEY1_GPIO_Port);
-    Key_Press(&key2, KEY2_Pin, KEY2_GPIO_Port);
+    for (int i = 0; i < KEY_COUNT; i++)
+    {
+      Key_Press(all_keys[i].key, all_keys[i].pin, all_keys[i].port);
+    }
   }
 }
 

@@ -21,6 +21,13 @@ typedef enum
     IMAGE_MODE_OFF,
   }IMAGE_MOD;
 
+typedef struct
+{
+    Input_Mode mode;
+    IMAGE_MOD imageMod;
+    int harmonic_pages;     //用于控制非正弦输入时，OLED屏幕页数的变量
+}Display_State;
+extern Display_State display_state;
 
 //2. 系统常用参数结构体
 typedef struct

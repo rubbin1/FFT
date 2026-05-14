@@ -26,3 +26,8 @@ HarmonicsResult harmonicsResult = {
 
 AdcBuffers_flag adcbuf_flag = {0};
 
+Display_State display_state = {
+    .mode = SINGLE_WAVE_Input,
+    .imageMod = IMAGE_MODE_OFF,
+    .harmonic_pages = 0,
+};

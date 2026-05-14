@@ -5,12 +5,19 @@
 #include "key_press.h"
 #include "main.h"
 
-//结构体定义在key_press.h中
 //定义四个按键key0，key1，key2,key3
 Key_TypeDef key0 = {0};
 Key_TypeDef key1 = {0};
 Key_TypeDef key2 = {0};
 Key_TypeDef key3 = {0};
+
+// 按键映射表
+const KeyMap all_keys[] = {
+    {&key0, KEY0_Pin, KEY0_GPIO_Port},
+    {&key1, KEY1_Pin, KEY1_GPIO_Port},
+    {&key2, KEY2_Pin, KEY2_GPIO_Port},
+};
+const uint8_t KEY_COUNT = sizeof(all_keys) / sizeof(all_keys[0]);
 
 void Key_Press(Key_TypeDef *key, uint16_t GPIO_Pin, GPIO_TypeDef *GPIO_Port)
 {

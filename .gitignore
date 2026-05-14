@@ -118,3 +118,4 @@
 /.idea/FFT_moni.iml
 /cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/measure_result.c.obj
 /cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/system_config.c.obj
+/cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/private_typedef.c.obj

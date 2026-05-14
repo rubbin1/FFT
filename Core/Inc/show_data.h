@@ -9,5 +9,6 @@
 void OLED_Show_sin_input(float freq, float ampl);
 void OLED_Show_mul_input(float *freqs, float *ampls, int pages);
 void OLED_Show_Image(uint16_t *adc_data, float f0);
+void Open_OLED_Show();
 
 #endif //SHOW_DATA_H

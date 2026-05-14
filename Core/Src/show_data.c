@@ -74,10 +74,20 @@ void OLED_Show_Image(uint16_t *adc_data, float f0)
 {
     const int SCREEN_W = 128;
     const int SCREEN_H = 64;
-    static float wave[1024];  // 静态区，不占栈
+    static float wave[1024];
+    float sum = 0;
 
     for (int i = 0; i < 1024; i++)
-        wave[i] = adc_data[i] * 3.3f / 4096.0f - 1.65f;  // 去直流
+    {
+        float v = adc_data[i] * 3.3f / 4096.0f;
+        wave[i] = v;
+        sum += v;
+    }
+    float avg = sum / 1024.0f;
+    for (int i = 0; i < 1024; i++)
+    {
+        wave[i] -= avg;
+    }
 
     int y_center = SCREEN_H / 2;
     float y_scale = 28.0f;
@@ -105,5 +115,14 @@ void OLED_Show_Image(uint16_t *adc_data, float f0)
         if (col > 0) OLED_DrawLine(prev_x, prev_y, x, y, OLED_COLOR_NORMAL);
         prev_x = x; prev_y = y;
     }
+    OLED_ShowFrame();
+}
+
+void Open_OLED_Show()
+{
+    OLED_PrintASCIIString(0, 32, "System Begin", &afont12x6, OLED_COLOR_NORMAL);
+    OLED_ShowFrame();
+    HAL_Delay(3000);
+    OLED_NewFrame();
     OLED_ShowFrame();
 }

@@ -7,7 +7,7 @@
 
 void FFT_Init();
 void Data_buffer_nosin(float *buf);
-void fft_process_harmonics(float *freqs, float *ampls);
+void fft_process_harmonics();
 
 extern float Data_buffer[];
 // Wave data now read from Data_buffer's real parts (Data_buffer[2*i])

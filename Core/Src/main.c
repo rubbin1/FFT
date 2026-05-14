@@ -22,29 +22,18 @@
 #include "oled.h"
 #include "show_data.h"
 #include "zero_crossing_and_dft.h"
+#include "private_typedef.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-//输入模式
-typedef enum
-{
-  SINGLE_WAVE_Input,
-  MULTI_WAVE_Input,
-}Input_Mode;
 
-//是否进行图像显示
-typedef enum
-{
-  IMAGE_MODE_ON,
-  IMAGE_MODE_OFF,
-}IMAGE_MOD;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define FFT_LEN 1024
 #define ADC_BUFFER_SIZE 1024
+#define FFT_LEN 1024
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -55,15 +44,13 @@ typedef enum
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t adc_raw[ADC_BUFFER_SIZE];   // DMA 循环写入的原始 ADC 值
 
-// 你的旧 Data_buffer 是 2048 长度（实部+虚部），保留它
-extern float Data_buffer[2048];      // 确保这个定义与你原有代码一致
+//定义Input_Mode为单信号输入，图像模式同理
+Input_Mode current_mode = SINGLE_WAVE_Input;
+IMAGE_MOD current_imaging_mode = IMAGE_MODE_OFF;
 
-volatile uint8_t adc_data_ready = 0; // 标志：1024点采集完成
-
-uint16_t adc_snapshot[ADC_BUFFER_SIZE];
-
+//定义一个用于控制非正弦输入时，OLED屏幕页数的变量
+int pages = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,7 +102,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_ADCEx_Calibration_Start(&hadc1);
 
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_raw, ADC_BUFFER_SIZE);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcbuf_flag.raw, system_config.adc_buffer_size);
 
   HAL_TIM_Base_Start(&htim3);
 
@@ -125,17 +112,8 @@ int main(void)
   //加入一个开屏动画
   Open_OLED_Show();
 
-  //非正弦输入的频率和幅值和正弦输入的频率和幅值
-  float exact_freq = 0;
-  float exact_ampl = 0;
-
-  //定义Input_Mode为单信号输入，图像模式同理
-  Input_Mode current_mode = SINGLE_WAVE_Input;
-  IMAGE_MOD current_imaging_mode = IMAGE_MODE_OFF;
-
-  //定义一个用于控制非正弦输入时，OLED屏幕页数的变量
-  int pages = 0;
-
+  const float vref = system_config.adc_vref;
+  const uint16_t res = system_config.adc_resolution;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -179,48 +157,65 @@ int main(void)
       else current_mode = SINGLE_WAVE_Input;
     }
 
-    if (adc_data_ready)
+    if (adcbuf_flag.data_ready)
     {
-      adc_data_ready = 0;
+      adcbuf_flag.data_ready = 0;
 
+      // 数据处理
       float sum = 0;
       for (int i = 0; i < ADC_BUFFER_SIZE; i++)
       {
-        //把Data_buffer数组后半部分装数
-        float v = adc_snapshot[i] * 3.3f / 4096.0f;
+        float v = adcbuf_flag.snapshot[i] * vref / res;
         Data_buffer[ADC_BUFFER_SIZE + i] = v;
         sum += v;
       }
-      float avg = sum / ADC_BUFFER_SIZE;
+      float avg = sum / system_config.adc_buffer_size;
 
       //去直流
-      for (int i = 0; i < ADC_BUFFER_SIZE; i++)
+      for (int i = 0; i < system_config.adc_buffer_size; i++)
       {
-        Data_buffer[ADC_BUFFER_SIZE + i] -= avg;
+        Data_buffer[system_config.adc_buffer_size + i] -= avg;
       }
 
       switch (current_mode)
       {
       case SINGLE_WAVE_Input:
         Data_buffer_sin(Data_buffer);
-        float probably_freq = zero_crossing_raw(Data_buffer, 1024, 10000.f);
+        float probably_freq = zero_crossing_raw(Data_buffer, system_config.adc_buffer_size);
         if (probably_freq > 0)
         {
-          precise_measure(probably_freq, &exact_freq, &exact_ampl);
-          OLED_Show_sin_input(exact_freq , exact_ampl);
+          precise_measure(probably_freq);
+          OLED_Show_sin_input();
         }
         break;
       case MULTI_WAVE_Input:
         Data_buffer_nosin(Data_buffer);
-        float freqs[5], ampls[5];
-        fft_process_harmonics(freqs, ampls);
+        fft_process_harmonics();
         if (current_imaging_mode == IMAGE_MODE_ON)
         {
-          if (freqs[0] <= 0)  return;
-          OLED_Show_Image(adc_snapshot ,freqs[0]);
+          if (harmonicsResult.fundamental.frequency <= 0)  break;
+          OLED_Show_Image(adcbuf_flag.snapshot, harmonicsResult.fundamental.frequency);
         }
         else
+        {
+          float freqs[5] =
+          {
+            harmonicsResult.fundamental.frequency,
+            harmonicsResult.harmonics[0].frequency,
+            harmonicsResult.harmonics[1].frequency,
+            harmonicsResult.harmonics[2].frequency,
+            harmonicsResult.harmonics[3].frequency
+          };
+          float ampls[5] =
+          {
+            harmonicsResult.fundamental.amplitude,
+            harmonicsResult.harmonics[0].amplitude,
+            harmonicsResult.harmonics[1].amplitude,
+            harmonicsResult.harmonics[2].amplitude,
+            harmonicsResult.harmonics[3].amplitude
+          };
           OLED_Show_mul_input(freqs, ampls, pages);
+        }
         break;
       }
     }
@@ -299,10 +294,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-  if (hadc->Instance == ADC1) {
-    // 快速复制原始 ADC 数据（uint16_t 复制极快，<100us）
-    memcpy(adc_snapshot, adc_raw, sizeof(adc_snapshot));
-    adc_data_ready = 1;
+  if (hadc->Instance == ADC1)
+  {
+    // 快速复制原始ADC数据
+    memcpy(adcbuf_flag.snapshot, adcbuf_flag.raw, sizeof(adcbuf_flag.snapshot));
+    adcbuf_flag.data_ready = 1;
   }
 }
 /* USER CODE END 4 */

@@ -116,3 +116,5 @@
 /cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/voltage_in.c.obj
 /.idea/.name
 /.idea/FFT_moni.iml
+/cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/measure_result.c.obj
+/cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/system_config.c.obj

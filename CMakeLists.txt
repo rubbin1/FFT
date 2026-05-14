@@ -46,6 +46,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Src/key_press.c
         Core/Src/oled.c
         Core/Src/font.c
+        Core/Src/private_typedef.c
+        Core/Inc/private_typedef.h
 )
 
 # Add STM32CubeMX generated sources

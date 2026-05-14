@@ -7,11 +7,13 @@
 #include "math.h"
 #include "show_data.h"
 #include "window_table.h"
-#include "zero_crossing_and_dft.h"
+#include "private_typedef.h"
 
 #define FFT_LEN 1024
 
-float sample_rate = 10000.f;        //采样率
+extern const SystemConfig system_config;
+extern HarmonicsResult harmonicsResult;
+
 float Data_buffer[FFT_LEN * 2] = {0};
 /*若为纯正弦输入时，Data_buffer为数据采样序列
  *若为非正弦输入，则为FFT数据数组
@@ -38,7 +40,7 @@ void Data_buffer_nosin(float *buf)
     }
 }
 
-void fft_process_harmonics(float *freqs, float *ampls)
+void fft_process_harmonics()
 {
     // 1. 加窗 + FFT + 幅度
     for (int i = 0; i < FFT_LEN; i++)
@@ -72,16 +74,16 @@ void fft_process_harmonics(float *freqs, float *ampls)
     float den = 2.0f * (ym2 - ym1 - 2.0f * y0 - yp1 + yp2);
     float delta = (fabsf(den) > 1e-12f) ? (num / den) : 0.0f;
 
-    freqs[0] = (max_pos + delta) * sample_rate / FFT_LEN;
-    ampls[0] = max_val;   // 基波幅值（平顶窗下可直接用最大谱线）
+    harmonicsResult.fundamental.frequency = (max_pos + delta) * system_config.adc_sample_rate / FFT_LEN;
+    harmonicsResult.fundamental.amplitude = max_val;   // 基波幅值（平顶窗下可直接用最大谱线）
 
-    float f0 = freqs[0];
-    float df = sample_rate / FFT_LEN;
+    float f0 = harmonicsResult.fundamental.frequency;
+    float df = system_config.adc_sample_rate / FFT_LEN;
 
     // 5. 搜索 2~5 次谐波
     for (int k = 2; k <= 5; k++)
     {
-        freqs[k-1] = k * f0;                 // 谐波频率 = k * 基频
+        float freq_harm = k * f0;
 
         // 计算谐波对应的谱线中心索引
         int center_idx = (int)((k * f0) / df + 0.5f);
@@ -95,6 +97,7 @@ void fft_process_harmonics(float *freqs, float *ampls)
             if (Data_buffer[i] > harm_max)
                 harm_max = Data_buffer[i];
         }
-        ampls[k-1] = harm_max;
+        harmonicsResult.harmonics[k - 2].frequency = freq_harm;
+        harmonicsResult.harmonics[k - 2].amplitude = harm_max;
     }
 }

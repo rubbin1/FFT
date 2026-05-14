@@ -7,18 +7,21 @@
 #include <stdio.h>
 #include "oled.h"
 #include "main.h"
+#include "private_typedef.h"
+
+extern const SystemConfig system_config;
 
 char display_char_1[24] = {0};
 char display_char_2[24] = {0};
 char display_char_3[24] = {0};
 
 //纯正弦输入时的屏幕显示
-void OLED_Show_sin_input(float freq, float ampl)
+void OLED_Show_sin_input()
 {
     OLED_NewFrame();
     OLED_PrintString(0, 0, "纯正弦输入", &font12x12, OLED_COLOR_NORMAL);
-    int freq_int = (int)(freq * 10000);
-    int ampl_int = (int)(ampl * 10000);
+    int freq_int = (int)(waveParam.frequency * 10000);
+    int ampl_int = (int)(waveParam.amplitude * 10000);
     sprintf(display_char_1, "freq=%d.%04d", freq_int/10000, freq_int%10000);
     sprintf(display_char_2, "ampl=%d.%04d", ampl_int/10000, ampl_int%10000);
     OLED_PrintASCIIString(0, 15, display_char_1, &afont12x6, OLED_COLOR_NORMAL);
@@ -68,8 +71,6 @@ void OLED_Show_mul_input(float *freqs, float *ampls, int pages)
 }
 
 //在非正弦输入模式下，对信号波形图进行绘制
-extern float sample_rate;     // 采样率
-
 void OLED_Show_Image(uint16_t *adc_data, float f0)
 {
     const int SCREEN_W = 128;
@@ -93,7 +94,7 @@ void OLED_Show_Image(uint16_t *adc_data, float f0)
     float y_scale = 28.0f;
 
     //一个周期的采样点数
-    float period_samples = sample_rate / f0;
+    float period_samples = system_config.adc_sample_rate / f0;
 
     OLED_NewFrame();
     int prev_x = 0, prev_y = y_center;

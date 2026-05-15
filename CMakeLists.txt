@@ -48,6 +48,10 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Src/font.c
         Core/Src/private_typedef.c
         Core/Inc/private_typedef.h
+        Core/Src/function.c
+        Core/Inc/function.h
+        Core/Src/error_type_dispaly.c
+        Core/Inc/error_type_dispaly.h
 )
 
 # Add STM32CubeMX generated sources

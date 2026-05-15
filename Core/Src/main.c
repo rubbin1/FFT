@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include "key_press.h"
 #include "fft.h"
+#include "function.h"
 #include "oled.h"
 #include "show_data.h"
 #include "zero_crossing_and_dft.h"
@@ -106,8 +107,6 @@ int main(void)
   //加入一个开屏动画
   Open_OLED_Show();
 
-  const float vref = system_config.adc_vref;
-  const uint16_t res = system_config.adc_resolution;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -117,99 +116,25 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    /*依旧是按键检测
-     *key0: 切换输入模式
-     */
-    if (key1.short_pressed_flag)
-    {
-      key1.short_pressed_flag = 0;
-      if (display_state.mode == MULTI_WAVE_Input && display_state.imageMod == IMAGE_MODE_OFF)
-      {
-        display_state.harmonic_pages = (display_state.harmonic_pages + 1) % 5;
-      }
-    }
-    if (key2.short_pressed_flag)
-    {
-      key2.short_pressed_flag = 0;
-      if (display_state.mode == MULTI_WAVE_Input)
-      {
-        if (display_state.imageMod == IMAGE_MODE_OFF)   display_state.imageMod = IMAGE_MODE_ON;
-        else display_state.imageMod = IMAGE_MODE_OFF;
-      }
-    }
-    if (key0.short_pressed_flag)
-    {
-      key0.short_pressed_flag = 0;
-
-      if (display_state.mode == SINGLE_WAVE_Input)
-      {
-        //进入非正弦输入时，每次都要回到基波界面
-        display_state.harmonic_pages = 0;
-        display_state.mode = MULTI_WAVE_Input;
-        display_state.imageMod = IMAGE_MODE_OFF;
-      }
-      else display_state.mode = SINGLE_WAVE_Input;
-    }
+    //依旧是按键检测
+    key1_pressed();
+    key2_pressed();
+    key0_pressed();
 
     if (adcbuf_flag.data_ready)
     {
       adcbuf_flag.data_ready = 0;
 
-      // 数据处理
-      float sum = 0;
-      for (int i = 0; i < ADC_BUFFER_SIZE; i++)
-      {
-        float v = adcbuf_flag.snapshot[i] * vref / res;
-        Data_buffer[ADC_BUFFER_SIZE + i] = v;
-        sum += v;
-      }
-      float avg = sum / system_config.adc_buffer_size;
-
-      //去直流
-      for (int i = 0; i < system_config.adc_buffer_size; i++)
-      {
-        Data_buffer[system_config.adc_buffer_size + i] -= avg;
-      }
+      //adc数据处理
+      adc_DataProcessing();
 
       switch (display_state.mode)
       {
       case SINGLE_WAVE_Input:
-        Data_buffer_sin(Data_buffer);
-        float probably_freq = zero_crossing_raw(Data_buffer, system_config.adc_buffer_size);
-        if (probably_freq > 0)
-        {
-          precise_measure(probably_freq);
-          OLED_Show_sin_input();
-        }
+        single_wave_input_function();
         break;
       case MULTI_WAVE_Input:
-        Data_buffer_nosin(Data_buffer);
-        fft_process_harmonics();
-        if (display_state.imageMod == IMAGE_MODE_ON)
-        {
-          if (harmonicsResult.fundamental.frequency <= 0)  break;
-          OLED_Show_Image(adcbuf_flag.snapshot, harmonicsResult.fundamental.frequency);
-        }
-        else
-        {
-          float freqs[5] =
-          {
-            harmonicsResult.fundamental.frequency,
-            harmonicsResult.harmonics[0].frequency,
-            harmonicsResult.harmonics[1].frequency,
-            harmonicsResult.harmonics[2].frequency,
-            harmonicsResult.harmonics[3].frequency
-          };
-          float ampls[5] =
-          {
-            harmonicsResult.fundamental.amplitude,
-            harmonicsResult.harmonics[0].amplitude,
-            harmonicsResult.harmonics[1].amplitude,
-            harmonicsResult.harmonics[2].amplitude,
-            harmonicsResult.harmonics[3].amplitude
-          };
-          OLED_Show_mul_input(freqs, ampls, display_state.harmonic_pages);
-        }
+        multi_wave_input_function();
         break;
       }
     }

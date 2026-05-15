@@ -30,4 +30,5 @@ Display_State display_state = {
     .mode = SINGLE_WAVE_Input,
     .imageMod = IMAGE_MODE_OFF,
     .harmonic_pages = 0,
+    .error_type = 0,
 };

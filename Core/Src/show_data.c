@@ -121,7 +121,7 @@ void OLED_Show_Image(uint16_t *adc_data, float f0)
 
 void Open_OLED_Show()
 {
-    OLED_PrintASCIIString(0, 32, "System Begin", &afont12x6, OLED_COLOR_NORMAL);
+    OLED_PrintASCIIString(0, 0, "System Begin", &afont12x6, OLED_COLOR_NORMAL);
     OLED_ShowFrame();
     HAL_Delay(3000);
     OLED_NewFrame();

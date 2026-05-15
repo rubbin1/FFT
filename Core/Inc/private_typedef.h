@@ -26,6 +26,7 @@ typedef struct
     Input_Mode mode;
     IMAGE_MOD imageMod;
     int harmonic_pages;     //用于控制非正弦输入时，OLED屏幕页数的变量
+    int error_type;         //错误码
 }Display_State;
 extern Display_State display_state;
 

@@ -8,7 +8,6 @@
 #include "key_press.h"
 #include "private_typedef.h"
 #include "show_data.h"
-#include "zero_crossing_and_dft.h"
 #include "error_type_dispaly.h"
 
 void key0_pressed(void)
@@ -60,7 +59,7 @@ void adc_DataProcessing(void)
     for (int i = 0; i < ADC_BUFFER_SIZE; i++)
     {
         float v = adcbuf_flag.snapshot[i] * system_config.adc_vref / system_config.adc_resolution;
-        Data_buffer[ADC_BUFFER_SIZE + i] = v;
+        Data_buffer[ADC_BUFFER_SIZE + i] = v;   // 恢复为后半部分存储时域数据
         sum += v;
     }
     float avg = sum / system_config.adc_buffer_size;
@@ -68,25 +67,34 @@ void adc_DataProcessing(void)
     //去直流
     for (int i = 0; i < system_config.adc_buffer_size; i++)
     {
-        Data_buffer[system_config.adc_buffer_size + i] -= avg;
+        Data_buffer[ADC_BUFFER_SIZE + i] -= avg;  // 对后半部分去直流
     }
 }
 
 void single_wave_input_function(void)
 {
-    Data_buffer_sin(Data_buffer);
-    float probably_freq = zero_crossing_raw(Data_buffer, system_config.adc_buffer_size);
-    if (probably_freq > 0)
+    adc_DataProcessing();
+    Data_buffer_fft(Data_buffer);
+    fft_process_sin_first();
+
+    adc_DataProcessing();
+    Data_buffer_fft(Data_buffer);
+    fft_process_sin_second();
+    if (waveParam.frequency > 0)
     {
-        precise_measure(probably_freq);
         OLED_Show_sin_input();
     }
 }
 
 void multi_wave_input_function(void)
 {
-    Data_buffer_nosin(Data_buffer);
-    fft_process_harmonics();
+    adc_DataProcessing();
+    Data_buffer_fft(Data_buffer);
+    fft_process_harmonics_first();
+
+    adc_DataProcessing();
+    Data_buffer_fft(Data_buffer);
+    fft_process_harmonics_second();
     if (display_state.imageMod == IMAGE_MODE_ON)
     {
         if (harmonicsResult.fundamental.frequency <= 0)

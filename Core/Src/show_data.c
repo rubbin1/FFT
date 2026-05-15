@@ -100,8 +100,8 @@ void OLED_Show_Image(uint16_t *adc_data, float f0)
     int prev_x = 0, prev_y = y_center;
     for (int col = 0; col < SCREEN_W; col++)
     {
-        //将 0~SCREEN_W映射到0~period_samples（一个完整周期）
-        float idx_f = (float)col / SCREEN_W * period_samples;
+        //将 0~SCREEN_W映射到0~period_samples（两个完整周期）
+        float idx_f = (float) 1.5 * col / SCREEN_W * period_samples;
         int idx = (int)idx_f;
         float frac = idx_f - idx;
 

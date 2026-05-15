@@ -41,8 +41,6 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Inc/show_data.h
         Core/Src/window_table.c
         Core/Inc/window_table.h
-        Core/Src/zero_crossing_and_dft.c
-        Core/Inc/zero_crossing_and_dft.h
         Core/Src/key_press.c
         Core/Src/oled.c
         Core/Src/font.c

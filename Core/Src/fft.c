@@ -31,7 +31,7 @@ void FFT_Init()
     arm_cfft_init_f32(&scfft, FFT_LEN);
 }
 
-void Data_buffer_nosin(float *buf)
+void Data_buffer_fft(float *buf)
 {
     for (int i = 0; i < FFT_LEN; i++)
     {
@@ -40,64 +40,134 @@ void Data_buffer_nosin(float *buf)
     }
 }
 
-void fft_process_harmonics()
+void fft_process_harmonics_first()
 {
-    // 1. 加窗 + FFT + 幅度
-    for (int i = 0; i < FFT_LEN; i++)
-    {
-        Data_buffer[2 * i] = Data_buffer[2 * i] * FlatTop_Window[i];
+    // 1. 加平顶窗
+    for (int i = 0; i < FFT_LEN; i++) {
+        Data_buffer[2 * i] *= FlatTop_Window[i];
     }
     arm_cfft_f32(&scfft, Data_buffer, 0, 1);
     arm_cmplx_mag_f32(Data_buffer, Data_buffer, FFT_LEN);
 
-    // 2. 幅值校准
-    for (int i = 0; i < FFT_LEN / 2; i++)
-        Data_buffer[i] *= 2.0f / (FFT_LEN * 0.26526f);  // 确认窗的相干增益
+    // 2. 幅值校准（平顶窗）
+    for (int i = 0; i < FFT_LEN / 2; i++) {
+        Data_buffer[i] *= 2.0f / (FFT_LEN * 0.26526f);
+    }
 
-    // 3. 寻找基波最大谱线（跳过直流）
+    // 3. 寻找基波谱线（跳过直流）
+    float max_val;
+    uint32_t max_pos;
+    arm_max_f32(&Data_buffer[1], FFT_LEN/2 - 1, &max_val, &max_pos);
+    max_pos += 1;
+    harmonicsResult.fundamental.amplitude = max_val;
+
+    float df = system_config.adc_sample_rate / FFT_LEN;
+
+    // 4. 搜索 2~5 次谐波幅值（直接取附近谱线的最大值）
+    for (int k = 2; k <= 5; k++) {
+        int center_idx = (int)((k * (max_pos * df)) / df + 0.5f); // 粗略位置
+        if (center_idx < 1) center_idx = 1;
+        if (center_idx > FFT_LEN/2 - 2) center_idx = FFT_LEN/2 - 2;
+        float harm_max = Data_buffer[center_idx];
+        for (int i = center_idx - 1; i <= center_idx + 1; i++) {
+            if (Data_buffer[i] > harm_max) harm_max = Data_buffer[i];
+        }
+        harmonicsResult.harmonics[k-2].amplitude = harm_max;
+    }
+}
+
+void fft_process_harmonics_second()
+{
+    // 加汉宁窗
+    for (int i = 0; i < FFT_LEN; i++) {
+        Data_buffer[2 * i] *= Hanning_Window[i];
+    }
+    arm_cfft_f32(&scfft, Data_buffer, 0, 1);
+    arm_cmplx_mag_f32(Data_buffer, Data_buffer, FFT_LEN);
+
+    // 幅值校正（汉宁窗）
+    float calib = 4.0f / FFT_LEN;
+    for (int i = 0; i < FFT_LEN / 2; i++) {
+        Data_buffer[i] *= calib;
+    }
+
+    // 寻找最大谱线
     float max_val;
     uint32_t max_pos;
     arm_max_f32(&Data_buffer[1], FFT_LEN/2 - 1, &max_val, &max_pos);
     max_pos += 1;
 
-    // 4. 五点最小二乘抛物线插值，求基波精确频率
-    if (max_pos < 2) max_pos = 2;
-    if (max_pos > FFT_LEN/2 - 3) max_pos = FFT_LEN/2 - 3;
-
-    float ym2 = Data_buffer[max_pos - 2];
-    float ym1 = Data_buffer[max_pos - 1];
-    float y0  = Data_buffer[max_pos];
-    float yp1 = Data_buffer[max_pos + 1];
-    float yp2 = Data_buffer[max_pos + 2];
-
-    float num = -2.0f * ym2 - ym1 + yp1 + 2.0f * yp2;
-    float den = 2.0f * (ym2 - ym1 - 2.0f * y0 - yp1 + yp2);
-    float delta = (fabsf(den) > 1e-12f) ? (num / den) : 0.0f;
-
-    harmonicsResult.fundamental.frequency = (max_pos + delta) * system_config.adc_sample_rate / FFT_LEN;
-    harmonicsResult.fundamental.amplitude = max_val;   // 基波幅值（平顶窗下可直接用最大谱线）
-
-    float f0 = harmonicsResult.fundamental.frequency;
-    float df = system_config.adc_sample_rate / FFT_LEN;
-
-    // 5. 搜索 2~5 次谐波
+    // 三点抛物线插值
+    if (max_pos < 1) max_pos = 1;
+    if (max_pos > FFT_LEN/2 - 2) max_pos = FFT_LEN/2 - 2;
+    float y1 = Data_buffer[max_pos - 1];
+    float y2 = Data_buffer[max_pos];
+    float y3 = Data_buffer[max_pos + 1];
+    float denom = 2.0f * (2.0f * y2 - y1 - y3);
+    float delta = (fabsf(denom) > 1e-12f) ? (y3 - y1) / denom : 0.0f;
+    float frequency = (max_pos + delta) * system_config.adc_sample_rate / FFT_LEN;
+    harmonicsResult.fundamental.frequency = frequency;
+    // 谐波频率 = k * 基波频率
     for (int k = 2; k <= 5; k++)
     {
-        float freq_harm = k * f0;
-
-        // 计算谐波对应的谱线中心索引
-        int center_idx = (int)((k * f0) / df + 0.5f);
-        if (center_idx < 1) center_idx = 1;
-        if (center_idx > FFT_LEN/2 - 2) center_idx = FFT_LEN/2 - 2;
-
-        // 取 center_idx 和相邻两根谱线中的最大值作为谐波幅值
-        float harm_max = Data_buffer[center_idx];
-        for (int i = center_idx - 1; i <= center_idx + 1; i++)
-        {
-            if (Data_buffer[i] > harm_max)
-                harm_max = Data_buffer[i];
-        }
-        harmonicsResult.harmonics[k - 2].frequency = freq_harm;
-        harmonicsResult.harmonics[k - 2].amplitude = harm_max;
+        harmonicsResult.harmonics[k-2].frequency = k * frequency;
     }
+}
+
+void fft_process_sin_first(void)
+{
+    float amplitude_flat;
+    // ===== 第一次 FFT：平顶窗，用于幅值 =====
+    for (int i = 0; i < FFT_LEN; i++)
+    {
+        Data_buffer[2 * i] *= FlatTop_Window[i];
+    }
+    arm_cfft_f32(&scfft, Data_buffer, 0, 1);
+    arm_cmplx_mag_f32(Data_buffer, Data_buffer, FFT_LEN);
+    // 幅值校准（平顶窗相干增益 0.26526）
+    for (int i = 0; i < FFT_LEN / 2; i++)
+    {
+        Data_buffer[i] *= 2.0f / (FFT_LEN * 0.26526f);
+    }
+    // 寻找最大谱线（幅值）
+    float max_ampl;
+    uint32_t max_pos_ampl;
+    arm_max_f32(&Data_buffer[1], FFT_LEN/2 - 1, &max_ampl, &max_pos_ampl);
+    max_pos_ampl += 1;
+    amplitude_flat = max_ampl;   // 平顶窗幅值
+
+    waveParam.amplitude = amplitude_flat;
+}
+
+void fft_process_sin_second(void)
+{
+    float frequency_hann;
+    // 加汉宁窗
+    for (int i = 0; i < FFT_LEN; i++) {
+        Data_buffer[2 * i] *= Hanning_Window[i];
+    }
+    arm_cfft_f32(&scfft, Data_buffer, 0, 1);
+    arm_cmplx_mag_f32(Data_buffer, Data_buffer, FFT_LEN);
+    // 幅值校正（汉宁窗）
+    float calib = 4.0f / FFT_LEN;
+    for (int i = 0; i < FFT_LEN / 2; i++) {
+        Data_buffer[i] *= calib;
+    }
+    // 寻找最大谱线（用于插值）
+    float max_val;
+    uint32_t max_pos_freq;
+    arm_max_f32(&Data_buffer[1], FFT_LEN/2 - 1, &max_val, &max_pos_freq);
+    max_pos_freq += 1;
+    // 三点抛物线插值
+    if (max_pos_freq < 1) max_pos_freq = 1;
+    if (max_pos_freq > FFT_LEN/2 - 2) max_pos_freq = FFT_LEN/2 - 2;
+    float y1 = Data_buffer[max_pos_freq - 1];
+    float y2 = Data_buffer[max_pos_freq];
+    float y3 = Data_buffer[max_pos_freq + 1];
+    float denom = 2.0f * (2.0f * y2 - y1 - y3);
+    float delta = (fabsf(denom) > 1e-12f) ? (y3 - y1) / denom : 0.0f;
+    frequency_hann = (max_pos_freq + delta) * system_config.adc_sample_rate / FFT_LEN;
+
+    // 组合最佳结果
+    waveParam.frequency = frequency_hann;
 }

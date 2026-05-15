@@ -6,10 +6,14 @@
 #define FFT_H
 
 void FFT_Init();
-void Data_buffer_nosin(float *buf);
-void fft_process_harmonics();
+void Data_buffer_fft(float *buf);
+
+void fft_process_harmonics_first();
+void fft_process_harmonics_second();
+
+void fft_process_sin_first(void);
+void fft_process_sin_second(void);
 
 extern float Data_buffer[];
-// Wave data now read from Data_buffer's real parts (Data_buffer[2*i])
 
 #endif //FFT_H

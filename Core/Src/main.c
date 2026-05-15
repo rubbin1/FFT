@@ -22,7 +22,6 @@
 #include "function.h"
 #include "oled.h"
 #include "show_data.h"
-#include "zero_crossing_and_dft.h"
 #include "private_typedef.h"
 /* USER CODE END Includes */
 

@@ -90,23 +90,32 @@ void OLED_Show_Image(uint16_t *adc_data, float f0)
         wave[i] -= avg;
     }
 
+    // 查找第一个上升过零点（从负到正）
+    int start_idx = 0;
+    for (int i = 1; i < 1024; i++) {
+        if (wave[i-1] < 0 && wave[i] >= 0) {
+            start_idx = i - 1;   // 从过零点前一个点开始，也可用插值提高精度
+            break;
+        }
+    }
+
     int y_center = SCREEN_H / 2;
     float y_scale = 28.0f;
 
-    //一个周期的采样点数
+    // 一个周期的采样点数
     float period_samples = system_config.adc_sample_rate / f0;
 
     OLED_NewFrame();
     int prev_x = 0, prev_y = y_center;
     for (int col = 0; col < SCREEN_W; col++)
     {
-        //将 0~SCREEN_W映射到0~period_samples（两个完整周期）
-        float idx_f = (float) 1.5 * col / SCREEN_W * period_samples;
+        // 映射到从 start_idx 开始的一个周期内
+        float idx_f = start_idx + (float) 1.5 * col / SCREEN_W * period_samples;
         int idx = (int)idx_f;
         float frac = idx_f - idx;
 
         float val;
-        if (idx + 1 < 1024)   // Wave_Buffer 长度为1024
+        if (idx + 1 < 1024)
             val = wave[idx] * (1.0f - frac) + wave[idx + 1] * frac;
         else
             val = wave[idx];

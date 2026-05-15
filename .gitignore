@@ -119,3 +119,5 @@
 /cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/measure_result.c.obj
 /cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/system_config.c.obj
 /cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/private_typedef.c.obj
+/cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/error_type_dispaly.c.obj
+/cmake-build-debug-stm32/CMakeFiles/FFT.dir/Core/Src/function.c.obj

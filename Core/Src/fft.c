@@ -40,43 +40,7 @@ void Data_buffer_fft(float *buf)
     }
 }
 
-void fft_process_harmonics_first()
-{
-    // 1. 加平顶窗
-    for (int i = 0; i < FFT_LEN; i++) {
-        Data_buffer[2 * i] *= FlatTop_Window[i];
-    }
-    arm_cfft_f32(&scfft, Data_buffer, 0, 1);
-    arm_cmplx_mag_f32(Data_buffer, Data_buffer, FFT_LEN);
-
-    // 2. 幅值校准（平顶窗）
-    for (int i = 0; i < FFT_LEN / 2; i++) {
-        Data_buffer[i] *= 2.0f / (FFT_LEN * 0.26526f);
-    }
-
-    // 3. 寻找基波谱线（跳过直流）
-    float max_val;
-    uint32_t max_pos;
-    arm_max_f32(&Data_buffer[1], FFT_LEN/2 - 1, &max_val, &max_pos);
-    max_pos += 1;
-    harmonicsResult.fundamental.amplitude = max_val;
-
-    float df = system_config.adc_sample_rate / FFT_LEN;
-
-    // 4. 搜索 2~5 次谐波幅值（直接取附近谱线的最大值）
-    for (int k = 2; k <= 5; k++) {
-        int center_idx = (int)((k * (max_pos * df)) / df + 0.5f); // 粗略位置
-        if (center_idx < 1) center_idx = 1;
-        if (center_idx > FFT_LEN/2 - 2) center_idx = FFT_LEN/2 - 2;
-        float harm_max = Data_buffer[center_idx];
-        for (int i = center_idx - 1; i <= center_idx + 1; i++) {
-            if (Data_buffer[i] > harm_max) harm_max = Data_buffer[i];
-        }
-        harmonicsResult.harmonics[k-2].amplitude = harm_max;
-    }
-}
-
-void fft_process_harmonics_second()
+void fft_process_harmonics()
 {
     // 加汉宁窗
     for (int i = 0; i < FFT_LEN; i++) {
@@ -84,20 +48,16 @@ void fft_process_harmonics_second()
     }
     arm_cfft_f32(&scfft, Data_buffer, 0, 1);
     arm_cmplx_mag_f32(Data_buffer, Data_buffer, FFT_LEN);
-
-    // 幅值校正（汉宁窗）
     float calib = 4.0f / FFT_LEN;
     for (int i = 0; i < FFT_LEN / 2; i++) {
         Data_buffer[i] *= calib;
     }
 
-    // 寻找最大谱线
+    // 基波频率和幅值（三点插值）
     float max_val;
     uint32_t max_pos;
     arm_max_f32(&Data_buffer[1], FFT_LEN/2 - 1, &max_val, &max_pos);
     max_pos += 1;
-
-    // 三点抛物线插值
     if (max_pos < 1) max_pos = 1;
     if (max_pos > FFT_LEN/2 - 2) max_pos = FFT_LEN/2 - 2;
     float y1 = Data_buffer[max_pos - 1];
@@ -106,11 +66,28 @@ void fft_process_harmonics_second()
     float denom = 2.0f * (2.0f * y2 - y1 - y3);
     float delta = (fabsf(denom) > 1e-12f) ? (y3 - y1) / denom : 0.0f;
     float frequency = (max_pos + delta) * system_config.adc_sample_rate / FFT_LEN;
+    // 基波幅值（用插值后的峰值）
+    float fundamental_amplitude = y2 - 0.25f * (y1 - y3) * delta; // 汉宁窗三点插值幅值公式
     harmonicsResult.fundamental.frequency = frequency;
-    // 谐波频率 = k * 基波频率
-    for (int k = 2; k <= 5; k++)
-    {
-        harmonicsResult.harmonics[k-2].frequency = k * frequency;
+    harmonicsResult.fundamental.amplitude = fundamental_amplitude;
+
+    float df = system_config.adc_sample_rate / FFT_LEN;
+
+    // 谐波幅值（三点插值）
+    for (int k = 2; k <= 5; k++) {
+        float harmonic_freq = k * frequency;
+        float idx_float = harmonic_freq / df;
+        int center_idx = (int)roundf(idx_float);
+        if (center_idx < 1) center_idx = 1;
+        if (center_idx > FFT_LEN/2 - 2) center_idx = FFT_LEN/2 - 2;
+        float y1_h = Data_buffer[center_idx - 1];
+        float y2_h = Data_buffer[center_idx];
+        float y3_h = Data_buffer[center_idx + 1];
+        float denom_h = 2.0f * (2.0f * y2_h - y1_h - y3_h);
+        float delta_h = (fabsf(denom_h) > 1e-12f) ? (y3_h - y1_h) / denom_h : 0.0f;
+        float harmonic_amplitude = y2_h - 0.25f * (y1_h - y3_h) * delta_h;
+        harmonicsResult.harmonics[k-2].frequency = harmonic_freq;
+        harmonicsResult.harmonics[k-2].amplitude = harmonic_amplitude;
     }
 }
 
@@ -143,14 +120,16 @@ void fft_process_sin_second(void)
 {
     float frequency_hann;
     // 加汉宁窗
-    for (int i = 0; i < FFT_LEN; i++) {
+    for (int i = 0; i < FFT_LEN; i++)
+    {
         Data_buffer[2 * i] *= Hanning_Window[i];
     }
     arm_cfft_f32(&scfft, Data_buffer, 0, 1);
     arm_cmplx_mag_f32(Data_buffer, Data_buffer, FFT_LEN);
     // 幅值校正（汉宁窗）
     float calib = 4.0f / FFT_LEN;
-    for (int i = 0; i < FFT_LEN / 2; i++) {
+    for (int i = 0; i < FFT_LEN / 2; i++)
+    {
         Data_buffer[i] *= calib;
     }
     // 寻找最大谱线（用于插值）

@@ -100,6 +100,8 @@ int main(void)
 
   HAL_TIM_Base_Start(&htim3);
 
+  actual_vdda = ADC_GetVDDA();
+
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_Delay(20);
   OLED_Init();
@@ -119,13 +121,11 @@ int main(void)
     key1_pressed();
     key2_pressed();
     key0_pressed();
+    key3_pressed();
 
     if (adcbuf_flag.data_ready)
     {
       adcbuf_flag.data_ready = 0;
-
-      //adc数据处理
-      adc_DataProcessing();
 
       switch (display_state.mode)
       {

@@ -8,8 +8,7 @@
 void FFT_Init();
 void Data_buffer_fft(float *buf);
 
-void fft_process_harmonics_first();
-void fft_process_harmonics_second();
+void fft_process_harmonics();
 
 void fft_process_sin_first(void);
 void fft_process_sin_second(void);

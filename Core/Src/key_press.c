@@ -16,6 +16,7 @@ const KeyMap all_keys[] = {
     {&key0, KEY0_Pin, KEY0_GPIO_Port},
     {&key1, KEY1_Pin, KEY1_GPIO_Port},
     {&key2, KEY2_Pin, KEY2_GPIO_Port},
+    {&key3, KEY3_Pin, KEY3_GPIO_Port},
 };
 const uint8_t KEY_COUNT = sizeof(all_keys) / sizeof(all_keys[0]);
 

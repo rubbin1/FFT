@@ -25,6 +25,7 @@ typedef struct
 {
     Input_Mode mode;
     IMAGE_MOD imageMod;
+    int single_wave_pages;
     int harmonic_pages;     //用于控制非正弦输入时，OLED屏幕页数的变量
     int error_type;         //错误码
 }Display_State;
@@ -38,8 +39,12 @@ typedef struct
     int adc_buffer_size; // 1024
     float adc_vref;     //3.3V
     uint16_t adc_resolution;    // ADC分辨率（满量程码值，通常为4096）
+    float square_root_2;        //根号二
 }SystemConfig;
 extern const SystemConfig system_config;
+
+//测量的内部参考电压值
+extern float actual_vdda;   // 实际测量的 VDDA
 
 //3. 测量结果结构体
 //纯正弦情况

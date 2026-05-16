@@ -16,15 +16,44 @@ char display_char_2[24] = {0};
 char display_char_3[24] = {0};
 
 //纯正弦输入时的屏幕显示
-void OLED_Show_sin_input()
+void OLED_Show_sin_input(float frequency, float amplitude, int pages)
 {
     OLED_NewFrame();
     OLED_PrintString(0, 0, "纯正弦输入", &font12x12, OLED_COLOR_NORMAL);
-    int freq_int = (int)(waveParam.frequency * 10000);
-    int ampl_int = (int)(waveParam.amplitude * 10000);
+    int freq_int = (int)(frequency * 10000);
+    int ampl_int = (int)(amplitude * 10000);
+    int vpp_int = ampl_int * 2;
+    float square_root_2 = system_config.square_root_2;
+    int rms_int = (int)(amplitude * 10000 / square_root_2);
+
+    //不论页码多少，频率值永远显示
     sprintf(display_char_1, "freq=%d.%04d", freq_int/10000, freq_int%10000);
-    sprintf(display_char_2, "ampl=%d.%04d", ampl_int/10000, ampl_int%10000);
     OLED_PrintASCIIString(0, 15, display_char_1, &afont12x6, OLED_COLOR_NORMAL);
+    if (pages == 0)
+    {
+        //在右上角显示幅值
+        OLED_PrintString(80, 0, "幅值", &font12x12, OLED_COLOR_NORMAL);
+        //把幅值传进字符串
+        sprintf(display_char_2, "ampl=%d.%04d", ampl_int/10000, ampl_int%10000);
+        //打印页码"1"
+        OLED_PrintASCIIString(116, 52, "1", &afont12x6, OLED_COLOR_NORMAL);
+    }
+    else
+    {
+        const char *signal_parameters[] = {"有效值", "峰峰值"};
+        OLED_PrintString(80, 0, signal_parameters[pages - 1], &font12x12, OLED_COLOR_NORMAL);
+        switch (pages)
+        {
+            case 1:
+            sprintf(display_char_2, "rms=%d.%04d", rms_int/10000, rms_int%10000);
+            break;
+            case 2:
+            sprintf(display_char_2, "vpp=%d.%04d", vpp_int/10000, vpp_int%10000);
+            break;
+        }
+        const char *page_numbers[] = {"2", "3"};
+        OLED_PrintASCIIString(116, 52, page_numbers[pages - 1], &afont12x6, OLED_COLOR_NORMAL);
+    }
     OLED_PrintASCIIString(0, 30, display_char_2, &afont12x6, OLED_COLOR_NORMAL);
     OLED_ShowFrame();
 }
@@ -41,13 +70,11 @@ void OLED_Show_mul_input(float *freqs, float *ampls, int pages)
     if (pages > 0 && ampl_base_int > 0)
     {
         int H_i = ampl_int * 100 * 10 / ampl_base_int;
-        sprintf(display_char_3, "Hi(%d)=%d.%01d%%", pages + 1, H_i/10, H_i%10);
+        sprintf(display_char_2, "Hi(%d)=%d.%01d%%", pages + 1, H_i/10, H_i%10);
     }
-    //显示波的频率和幅值
+    //显示波的频率
     sprintf(display_char_1, "freq=%d.%04d", freq_int/10000, freq_int%10000);
-    sprintf(display_char_2, "ampl=%d.%04d", ampl_int/10000, ampl_int%10000);
     OLED_PrintASCIIString(0, 15, display_char_1, &afont12x6, OLED_COLOR_NORMAL);
-    OLED_PrintASCIIString(0, 30, display_char_2, &afont12x6, OLED_COLOR_NORMAL);
 
     //显示波的类型和占有率
     if (pages == 0)
@@ -59,7 +86,7 @@ void OLED_Show_mul_input(float *freqs, float *ampls, int pages)
     else
     {
         //先显示占有率
-        OLED_PrintASCIIString(0, 45, display_char_3, &afont12x6, OLED_COLOR_NORMAL);
+        OLED_PrintASCIIString(0, 30, display_char_2, &afont12x6, OLED_COLOR_NORMAL);
         //再显示右上角的种类
         const char *wave_kind[] = {"二次谐波", "三次谐波", "四次谐波", "五次谐波"};
         OLED_PrintString(80, 0, wave_kind[pages - 1], &font12x12, OLED_COLOR_NORMAL);

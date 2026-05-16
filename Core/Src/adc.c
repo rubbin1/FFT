@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "adc.h"
 
+#include "tim.h"
+
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
@@ -138,5 +140,56 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 }
 
 /* USER CODE BEGIN 1 */
+#include "private_typedef.h"
 
+#define VREFINT_TYPICAL 1.20f   // 典型值 1.2V
+
+float ADC_GetVDDA(void)
+{
+  // 保存当前 ADC 配置（如果需要）
+  // 临时将 ADC 触发方式改为软件触发，停止 DMA
+  HAL_ADC_Stop_DMA(&hadc1);
+  HAL_TIM_Base_Stop(&htim3);   // 停止定时器触发
+
+  // 配置 ADC 通道为内部参考电压（通道 17）
+  ADC_ChannelConfTypeDef sConfig = {0};
+  sConfig.Channel = ADC_CHANNEL_VREFINT;   // 通常定义为 17
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5; // 长采样时间保证稳定
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+    // 恢复原通道并返回默认值
+    sConfig.Channel = ADC_CHANNEL_10;
+    HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcbuf_flag.raw, system_config.adc_buffer_size);
+    HAL_TIM_Base_Start(&htim3);
+    return 3.3f;
+  }
+
+  // 软件触发转换
+  HAL_ADC_Start(&hadc1);
+  if (HAL_ADC_PollForConversion(&hadc1, 100) != HAL_OK) {
+    // 超时处理
+    HAL_ADC_Stop(&hadc1);
+    sConfig.Channel = ADC_CHANNEL_10;
+    HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcbuf_flag.raw, system_config.adc_buffer_size);
+    HAL_TIM_Base_Start(&htim3);
+    return 3.3f;
+  }
+  uint16_t raw_vrefint = HAL_ADC_GetValue(&hadc1);
+  HAL_ADC_Stop(&hadc1);
+
+  // 恢复原 ADC 通道（PC0）
+  sConfig.Channel = ADC_CHANNEL_10;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+  // 恢复 DMA 和定时器
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcbuf_flag.raw, system_config.adc_buffer_size);
+  HAL_TIM_Base_Start(&htim3);
+
+  // 计算实际 VDDA
+  if (raw_vrefint == 0) return 3.3f;
+  float vdda = VREFINT_TYPICAL * 4095.0f / raw_vrefint;
+  return vdda;
+}
 /* USER CODE END 1 */

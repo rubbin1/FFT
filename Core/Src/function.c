@@ -20,6 +20,7 @@ void key0_pressed(void)
         {
             //进入非正弦输入时，每次都要回到基波界面
             display_state.harmonic_pages = 0;
+            display_state.single_wave_pages = 0;
             display_state.mode = MULTI_WAVE_Input;
             display_state.imageMod = IMAGE_MODE_OFF;
         }
@@ -52,13 +53,25 @@ void key2_pressed(void)
     }
 }
 
+void key3_pressed(void)
+{
+    if (key3.short_pressed_flag)
+    {
+        key3.short_pressed_flag = 0;
+        if (display_state.mode == SINGLE_WAVE_Input)
+        {
+            display_state.single_wave_pages = (display_state.single_wave_pages + 1) % 3;
+        }
+    }
+}
+
 void adc_DataProcessing(void)
 {
     // 数据处理
     float sum = 0;
     for (int i = 0; i < ADC_BUFFER_SIZE; i++)
     {
-        float v = adcbuf_flag.snapshot[i] * system_config.adc_vref / system_config.adc_resolution;
+        float v = adcbuf_flag.snapshot[i] * actual_vdda / system_config.adc_resolution;
         Data_buffer[ADC_BUFFER_SIZE + i] = v;   // 恢复为后半部分存储时域数据
         sum += v;
     }
@@ -82,7 +95,7 @@ void single_wave_input_function(void)
     fft_process_sin_second();
     if (waveParam.frequency > 0)
     {
-        OLED_Show_sin_input();
+        OLED_Show_sin_input(waveParam.frequency, waveParam.amplitude, display_state.single_wave_pages);
     }
 }
 
@@ -90,11 +103,7 @@ void multi_wave_input_function(void)
 {
     adc_DataProcessing();
     Data_buffer_fft(Data_buffer);
-    fft_process_harmonics_first();
-
-    adc_DataProcessing();
-    Data_buffer_fft(Data_buffer);
-    fft_process_harmonics_second();
+    fft_process_harmonics();
     if (display_state.imageMod == IMAGE_MODE_ON)
     {
         if (harmonicsResult.fundamental.frequency <= 0)
